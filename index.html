@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LankaPack Zennix ERP Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 24px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .header-left h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #f8fafc;
+        }
+
+        .header-left p {
+            color: #94a3b8;
+            margin-top: 4px;
+            font-size: 14px;
+        }
+
+        .last-updated {
+            background: #1e293b;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #94a3b8;
+            border: 1px solid #334155;
+        }
+
+        .kpi-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .kpi-card {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid #334155;
+            transition: border-color 0.2s;
+        }
+
+        .kpi-card:hover { border-color: #3b82f6; }
+
+        .kpi-label {
+            font-size: 13px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .kpi-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #f8fafc;
+        }
+
+        .kpi-sub {
+            font-size: 13px;
+            color: #64748b;
+            margin-top: 4px;
+        }
+
+        .charts-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 900px) {
+            .charts-row { grid-template-columns: 1fr; }
+        }
+
+        .chart-card {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid #334155;
+        }
+
+        .chart-card h3 {
+            font-size: 15px;
+            color: #cbd5e1;
+            margin-bottom: 16px;
+        }
+
+        .chart-card canvas {
+            max-height: 300px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #e2e8f0;
+            margin: 24px 0 16px;
+        }
+
+        .table-card {
+            background: #1e293b;
+            border-radius: 12px;
+            border: 1px solid #334155;
+            overflow-x: auto;
+            margin-bottom: 24px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        th {
+            text-align: left;
+            padding: 12px 16px;
+            background: #1e293b;
+            color: #94a3b8;
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #334155;
+        }
+
+        td {
+            padding: 10px 16px;
+            border-bottom: 1px solid #1e293b;
+        }
+
+        tr:hover td { background: #1e293b; }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-in { background: #064e3b; color: #6ee7b7; }
+        .badge-out { background: #1c1917; color: #fcd34d; }
+        .badge-all { background: #1e3a5f; color: #93c5fd; }
+
+        .reel-size {
+            font-weight: 600;
+            color: #f1f5f9;
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: #334155;
+            border-radius: 3px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 3px;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+        }
+
+        .footer {
+            text-align: center;
+            color: #475569;
+            font-size: 13px;
+            padding: 24px 0 8px;
+            border-top: 1px solid #1e293b;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: #64748b;
+        }
+
+        .loading .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #334155;
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .in-stock-total {
+            font-size: 14px;
+            color: #6ee7b7;
+        }
+
+        .customer-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .customer-tag {
+            background: #1e3a5f;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            color: #93c5fd;
+        }
+
+        .error-msg {
+            color: #fca5a5;
+            background: #450a0a;
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 1px solid #7f1d1d;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-left">
+            <h1>🏭 LankaPack Zennix ERP</h1>
+            <p>Production &amp; Inventory Dashboard</p>
+        </div>
+        <div class="last-updated" id="lastUpdated">Loading...</div>
+    </div>
+
+    <div id="errorContainer" style="display:none"></div>
+
+    <!-- KPI Cards -->
+    <div class="kpi-row" id="kpiRow">
+        <div class="kpi-card"><div class="kpi-label">Total Customers</div><div class="kpi-value" id="kpiCustomers">—</div><div class="kpi-sub">Active accounts</div></div>
+        <div class="kpi-card"><div class="kpi-label">Job Cards</div><div class="kpi-value" id="kpiJobs">—</div><div class="kpi-sub">Production orders</div></div>
+        <div class="kpi-card"><div class="kpi-label">Invoices</div><div class="kpi-value" id="kpiInvoices">—</div><div class="kpi-sub">Billed</div></div>
+        <div class="kpi-card"><div class="kpi-label">In Stock (KGs)</div><div class="kpi-value" id="kpiStockIn">—</div><div class="kpi-sub" id="kpiStockInSub">Available raw material</div></div>
+        <div class="kpi-card"><div class="kpi-label">In Use (KGs)</div><div class="kpi-value" id="kpiStockOut">—</div><div class="kpi-sub" id="kpiStockOutSub">Currently in production</div></div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-row">
+        <div class="chart-card">
+            <h3>📊 Reel Sizes In Use (KG)</h3>
+            <canvas id="chartReelSizes"></canvas>
+        </div>
+        <div class="chart-card">
+            <h3>📦 Stock Distribution</h3>
+            <canvas id="chartStockDist"></canvas>
+        </div>
+    </div>
+
+    <div class="charts-row">
+        <div class="chart-card">
+            <h3>🏢 Top Customers by Reel Consumption</h3>
+            <canvas id="chartCustomers"></canvas>
+        </div>
+        <div class="chart-card">
+            <h3>🧾 Stock by GSM (In Stock)</h3>
+            <canvas id="chartGsm"></canvas>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <h2 class="section-title">📋 In-Use Reel Details</h2>
+    <div class="table-card" id="inUseTable">
+        <table>
+            <thead>
+                <tr>
+                    <th>Barcode</th>
+                    <th>GSM</th>
+                    <th>Size</th>
+                    <th>Weight (KG)</th>
+                    <th>Department</th>
+                    <th>Date Added</th>
+                </tr>
+            </thead>
+            <tbody id="inUseBody">
+                <tr><td colspan="6" style="text-align:center;color:#64748b;">Loading...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h2 class="section-title">✅ Available Stock Summary</h2>
+    <div class="table-card" id="availableSummary">
+        <table>
+            <thead>
+                <tr>
+                    <th>GSM</th>
+                    <th>Size</th>
+                    <th>Reels</th>
+                    <th>Total Weight (KG)</th>
+                    <th>Avg Weight</th>
+                </tr>
+            </thead>
+            <tbody id="availableBody">
+                <tr><td colspan="5" style="text-align:center;color:#64748b;">Loading...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="footer">
+        LankaPack Zennix ERP Dashboard &mdash; Data sourced from live production database
+    </div>
+
+    <script>
+        let chartReel = null, chartStock = null, chartCust = null, chartGsm = null;
+
+        function showError(msg) {
+            const el = document.getElementById('errorContainer');
+            el.style.display = 'block';
+            el.innerHTML = '<div class="error-msg">⚠️ ' + msg + '</div>';
+        }
+
+        async function loadDashboard() {
+            const ts = new Date().toLocaleString('en-GB', { timeZone: 'Asia/Kolkata', timeZoneName: 'short' });
+            document.getElementById('lastUpdated').textContent = 'Last updated: ' + ts;
+
+            try {
+                // Fetch all data
+                const [customersRes, jobCardsRes, invoicesRes, stockAllRes, stockInRes, stockOutRes] = await Promise.all([
+                    fetch('data/customers.json'),
+                    fetch('data/job_cards.json'),
+                    fetch('data/invoices.json'),
+                    fetch('data/stock.json'),
+                    fetch('data/stock_in.json'),
+                    fetch('data/stock_out.json')
+                ]);
+
+                if (!customersRes.ok) throw new Error('Failed to load data files. Make sure the data directory exists with JSON exports.');
+
+                const customers = await customersRes.json();
+                const jobCards = await jobCardsRes.json();
+                const invoices = await invoicesRes.json();
+                const stockAll = await stockAllRes.json();
+                const stockIn = await stockInRes.json();
+                const stockOut = await stockOutRes.json();
+
+                // Process data
+                renderKPIs(customers, jobCards, invoices, stockIn, stockOut);
+                renderReelSizeChart(stockOut);
+                renderStockDistChart(stockIn, stockOut);
+                renderCustomerChart(jobCards);
+                renderGsmChart(stockIn);
+                renderInUseTable(stockOut);
+                renderAvailableSummary(stockIn);
+
+            } catch (err) {
+                console.error(err);
+                showError(err.message || 'Could not load dashboard data.');
+                document.querySelectorAll('.kpi-value').forEach(el => el.textContent = '⚠');
+                document.querySelectorAll('tbody').forEach(el => {
+                    el.innerHTML = '<tr><td colspan="10" style="text-align:center;color:#fca5a5;">Failed to load data</td></tr>';
+                });
+            }
+        }
+
+        function renderKPIs(customers, jobs, invoices, stockIn, stockOut) {
+            document.getElementById('kpiCustomers').textContent = customers.length || '—';
+            document.getElementById('kpiJobs').textContent = jobs.length || '—';
+
+            if (invoices && invoices.length !== undefined) {
+                document.getElementById('kpiInvoices').textContent = invoices.length;
+            } else {
+                document.getElementById('kpiInvoices').textContent = '—';
+            }
+
+            const inWeight = stockIn.reduce((s, r) => s + parseFloat(r.net_weight || 0), 0);
+            const outWeight = stockOut.reduce((s, r) => s + parseFloat(r.net_weight || 0), 0);
+
+            document.getElementById('kpiStockIn').textContent = inWeight.toLocaleString('en', { maximumFractionDigits: 0 });
+            document.getElementById('kpiStockInSub').textContent = inWeight + ' KG available';
+            document.getElementById('kpiStockOut').textContent = outWeight.toLocaleString('en', { maximumFractionDigits: 0 });
+            document.getElementById('kpiStockOutSub').textContent = outWeight + ' KG in production';
+        }
+
+        function renderReelSizeChart(stockOut) {
+            const sizes = {};
+            stockOut.forEach(r => {
+                const key = r.size || 'Unknown';
+                sizes[key] = (sizes[key] || 0) + parseFloat(r.net_weight || 0);
+            });
+
+            const sorted = Object.entries(sizes).sort((a, b) => b[1] - a[1]);
+            const labels = sorted.map(([k]) => k);
+            const data = sorted.map(([, v]) => Math.round(v));
+            const colors = ['#3b82f6','#8b5cf6','#ec4899','#f59e0b','#10b981','#06b6d4','#ef4444','#84cc16'];
+
+            if (chartReel) chartReel.destroy();
+            chartReel = new Chart(document.getElementById('chartReelSizes'), {
+                type: 'bar',
+                data: { labels, datasets: [{
+                    label: 'KG',
+                    data,
+                    backgroundColor: colors.slice(0, labels.length),
+                    borderRadius: 4
+                }]},
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: '#1e293b' },
+                            ticks: { color: '#94a3b8' }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#94a3b8' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderStockDistChart(stockIn, stockOut) {
+            const inW = stockIn.reduce((s, r) => s + parseFloat(r.net_weight || 0), 0);
+            const outW = stockOut.reduce((s, r) => s + parseFloat(r.net_weight || 0), 0);
+
+            if (chartStock) chartStock.destroy();
+            chartStock = new Chart(document.getElementById('chartStockDist'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Available (In Stock)', 'In Production (In Use)'],
+                    datasets: [{
+                        data: [Math.round(inW), Math.round(outW)],
+                        backgroundColor: ['#10b981', '#f59e0b'],
+                        borderColor: '#1e293b',
+                        borderWidth: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: '#94a3b8', padding: 16 }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderCustomerChart(jobCards) {
+            const customerCounts = {};
+            jobCards.forEach(j => {
+                const name = j.customer?.customer_full_name || 'Unknown';
+                customerCounts[name] = (customerCounts[name] || 0) + 1;
+            });
+
+            const sorted = Object.entries(customerCounts).sort((a, b) => b[1] - a[1]).slice(0, 10);
+            const labels = sorted.map(([k]) => k.length > 25 ? k.substring(0, 25) + '...' : k);
+            const data = sorted.map(([, v]) => v);
+            const colors = ['#3b82f6','#8b5cf6','#ec4899','#f59e0b','#10b981','#06b6d4','#ef4444','#84cc16','#f97316','#a855f7'];
+
+            if (chartCust) chartCust.destroy();
+            chartCust = new Chart(document.getElementById('chartCustomers'), {
+                type: 'bar',
+                data: { labels, datasets: [{
+                    label: 'Job Cards',
+                    data,
+                    backgroundColor: colors.slice(0, labels.length),
+                    borderRadius: 4
+                }]},
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            grid: { color: '#1e293b' },
+                            ticks: { color: '#94a3b8' }
+                        },
+                        y: {
+                            grid: { display: false },
+                            ticks: { color: '#94a3b8', font: { size: 11 } }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderGsmChart(stockIn) {
+            const gsmCounts = {};
+            stockIn.forEach(r => {
+                const g = r.gsm || 'Unknown';
+                gsmCounts[g] = (gsmCounts[g] || 0) + parseFloat(r.net_weight || 0);
+            });
+
+            const sorted = Object.entries(gsmCounts).sort((a, b) => b[1] - a[1]);
+            const labels = sorted.map(([k]) => k);
+            const data = sorted.map(([, v]) => Math.round(v));
+            const colors = ['#10b981','#3b82f6','#8b5cf6','#f59e0b','#ec4899','#06b6d4','#ef4444','#84cc16'];
+
+            if (chartGsm) chartGsm.destroy();
+            chartGsm = new Chart(document.getElementById('chartGsm'), {
+                type: 'doughnut',
+                data: {
+                    labels,
+                    datasets: [{
+                        data,
+                        backgroundColor: colors.slice(0, labels.length),
+                        borderColor: '#1e293b',
+                        borderWidth: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: '#94a3b8', padding: 12 }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderInUseTable(stockOut) {
+            const tbody = document.getElementById('inUseBody');
+            if (!stockOut.length) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#64748b;">No reels currently in use</td></tr>';
+                return;
+            }
+
+            const sorted = [...stockOut].sort((a, b) => new Date(b.stock_date) - new Date(a.stock_date));
+            tbody.innerHTML = sorted.slice(0, 50).map(r => {
+                const w = parseFloat(r.net_weight || 0).toFixed(1);
+                const date = new Date(r.stock_date).toLocaleDateString('en-GB');
+                return `<tr>
+                    <td style="font-family:monospace;font-size:12px;color:#94a3b8;">${r.stock_barcode}</td>
+                    <td class="reel-size">${r.gsm}</td>
+                    <td class="reel-size">${r.size}</td>
+                    <td>${w}</td>
+                    <td><span class="badge badge-out">${r.department}</span></td>
+                    <td style="color:#94a3b8;">${date}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        function renderAvailableSummary(stockIn) {
+            const tbody = document.getElementById('availableBody');
+            if (!stockIn.length) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#64748b;">No stock available</td></tr>';
+                return;
+            }
+
+            const groups = {};
+            stockIn.forEach(r => {
+                const key = r.gsm + '|' + r.size;
+                if (!groups[key]) groups[key] = { gsm: r.gsm, size: r.size, reels: 0, total: 0 };
+                groups[key].reels += 1;
+                groups[key].total += parseFloat(r.net_weight || 0);
+            });
+
+            const sorted = Object.values(groups).sort((a, b) => b.total - a.total);
+            tbody.innerHTML = sorted.map(g => {
+                const avg = (g.total / g.reels).toFixed(1);
+                return `<tr>
+                    <td>${g.gsm}</td>
+                    <td class="reel-size">${g.size}</td>
+                    <td>${g.reels}</td>
+                    <td>${g.total.toFixed(1)}</td>
+                    <td style="color:#94a3b8;">${avg}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        loadDashboard();
+    </script>
+</body>
+</html>
